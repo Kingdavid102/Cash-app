@@ -140,6 +140,12 @@ function verifyToken(req, res, next) {
   }
 }
 
+// Helper function to check if user is admin
+function isAdminUser(email) {
+  const adminEmails = ["admin@example.com", "emmy@gmail.com"]
+  return adminEmails.includes(email)
+}
+
 // Routes
 // Register user
 app.post("/api/auth/register", (req, res) => {
@@ -278,13 +284,15 @@ app.post("/api/transfer", verifyToken, (req, res) => {
     return res.status(404).json({ message: "Recipient not found" })
   }
 
-  // Check if sender has enough balance
-  if (sender.balance < Number.parseFloat(amount)) {
+  // Check if sender has enough balance (skip for admin users)
+  if (!isAdminUser(sender.email) && sender.balance < Number.parseFloat(amount)) {
     return res.status(400).json({ message: "Insufficient balance" })
   }
 
-  // Update balances
-  sender.balance -= Number.parseFloat(amount)
+  // Update balances (don't deduct from admin users)
+  if (!isAdminUser(sender.email)) {
+    sender.balance -= Number.parseFloat(amount)
+  }
   recipient.balance += Number.parseFloat(amount)
 
   // Save users
@@ -334,13 +342,15 @@ app.post("/api/withdraw", verifyToken, (req, res) => {
     return res.status(404).json({ message: "User not found" })
   }
 
-  // Check if user has enough balance
-  if (user.balance < Number.parseFloat(amount)) {
+  // Check if user has enough balance (skip for admin users)
+  if (!isAdminUser(user.email) && user.balance < Number.parseFloat(amount)) {
     return res.status(400).json({ message: "Insufficient balance" })
   }
 
-  // Update balance
-  user.balance -= Number.parseFloat(amount)
+  // Update balance (don't deduct from admin users)
+  if (!isAdminUser(user.email)) {
+    user.balance -= Number.parseFloat(amount)
+  }
 
   // Save users
   saveUsers(users)
